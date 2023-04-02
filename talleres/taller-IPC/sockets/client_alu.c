@@ -21,7 +21,7 @@ int main(int argc, char **argv){
 		exit(1);
 	}
 
-	//Creamos el socket
+	//Creacion del socket
 	if ((s = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
 		perror("socket");
 		exit(1);
@@ -37,16 +37,24 @@ int main(int argc, char **argv){
 	name.sin_port = htons(PORT);
 
 	//COMPLETAR: conectar el socket
-
-
+	if(connect(s, (struct sockaddr *)&name, sizeof(name)) == -1){
+		perror("connect");
+		exit(1);
+	}
+	
 	//COMPLETAR: Recibir mensaje de bienvenida y ponerlo en bufrecv
-
+	if((r = recv(s, bufrecv, MSGLEN, 0)) == -1){
+		perror("recv");
+		exit(1);
+	}
+	bufrecv[r] = '\0';
 	printf("Bienvenida: %s\n",bufrecv);
 
 	for (;;) {
 		printf("[%s]> ", argv[1]);
 		//Tomamos el input
 		if ((w = getline(&bufsend, &bufsendsiz, stdin)) == -1) {
+			/* Lectura de mensajes que van llegando desde STDIN */
 			if (!feof(stdin))
 				perror("getline");
 			break;
@@ -55,13 +63,37 @@ int main(int argc, char **argv){
 		if (strncmp(bufsend, ENDMSG, w) == 0){
 			break;
 		}
+
 		//COMPLETAR: Enviar el mensaje
+		if(send(s, bufsend, w, 0) == -1){
+			perror("send");
+			exit(1);
+		}
 
-		//COMPLETAR: ecibir mensajes hasta que envie  CMDSE
+		//COMPLETAR: escibir mensajes hasta que envie CMDSEP
+		while((r = recv(s, bufrecv, MSGLEN, 0)) > 0){
+			bufrecv[r] = '\0';
+
+			p = strstr(bufrecv, CMDSEP); 					// Se imprimen los mensajes hasta que llega CMDSEP
+			if(p){
+				*p = '\0';
+			}
+			if(p){
+				break;
+			}
+			printf("%s\n", bufrecv);
+		}
+		if(r == -1){
+			perror("recv");
+			exit(1);
+
+		}
 	}
-
 	free(bufsend);
 	close(s);
 
 	return 0;
 }
+
+
+
